@@ -147,3 +147,30 @@ Use environment variables:
 - Resume generation starts with Markdown; PDF/DOCX export comes after the tailoring flow is working.
 - Telegram is phase two, after the dashboard and resume flow are usable.
 - OpenAI is the default LLM provider, accessed through a provider wrapper so it can be swapped later.
+
+## Current Implementation
+
+The repo now contains the initial local-first implementation:
+
+- Next.js App Router shell with Tailwind styling.
+- Prisma/PostgreSQL schema for profiles, skills, experience, jobs, scores, resume drafts, application drafts, and source imports.
+- API routes for profile saving, dashboard loading, URL import, email import, job scoring, resume tailoring, approval, and mark-submitted.
+- A dashboard UI that supports the first MVP loop:
+  - save profile basics and approved skills
+  - import a job URL or pasted job-alert email
+  - score an imported job
+  - create a Markdown resume draft
+  - approve an application draft
+  - mark an application submitted
+
+LinkedIn handling remains intake-only: LinkedIn URLs are stored for manual review and are not scraped behind login, auto-applied, or used for account actions.
+
+## Local Setup
+
+1. Copy `.env.example` to `.env` and set `DATABASE_URL`.
+2. Install dependencies with `npm install`.
+3. Generate Prisma client with `npm run db:generate`.
+4. Create the database tables with `npm run db:migrate`.
+5. Start the app with `npm run dev`.
+
+If `OPENAI_API_KEY` is not set, scoring and resume tailoring use local heuristic fallbacks so the workflow remains testable.
