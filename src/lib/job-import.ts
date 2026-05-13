@@ -59,7 +59,7 @@ export async function parseJobUrl(sourceUrl: string): Promise<ParsedJob> {
     location: metadata.location,
     remoteType: inferRemoteType(`${metadata.title ?? ""} ${metadata.description ?? ""}`),
     salaryText: extractSalaryText(metadata.description ?? html),
-    description: metadata.description ?? extractVisibleText(html).slice(0, 6000),
+    description: metadata.description ?? extractVisibleText(html)?.slice(0, 6000),
     applyUrl: metadata.applyUrl ?? sourceUrl
   };
 }
@@ -113,7 +113,7 @@ function extractMetadata(html: string) {
   const title =
     metaContent(html, "og:title") ??
     metaContent(html, "twitter:title") ??
-    html.match(/<title[^>]*>(.*?)<\/title>/is)?.[1]?.trim();
+    html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1]?.trim();
   const description =
     metaContent(html, "description") ??
     metaContent(html, "og:description") ??
