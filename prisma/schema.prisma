@@ -1,0 +1,174 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum JobStatus {
+  new
+  interesting
+  tailoring
+  needs_review
+  ready_to_apply
+  approved
+  submitted
+  rejected
+  archived
+}
+
+enum SourceKind {
+  linkedin
+  greenhouse
+  lever
+  ashby
+  workable
+  company
+  email
+  manual
+}
+
+enum ParseStatus {
+  pending
+  parsed
+  failed
+}
+
+enum DraftStatus {
+  draft
+  needs_review
+  ready_to_apply
+  approved
+  submitted
+  rejected
+  archived
+}
+
+enum TruthCheckStatus {
+  pending
+  passed
+  needs_review
+  failed
+}
+
+model Profile {
+  id               String        @id @default(cuid())
+  name             String
+  email            String?
+  phone            String?
+  location         String?
+  links            Json?
+  targetRoles      String[]
+  salaryMin        Int?
+  salaryMax        Int?
+  remotePreference String?
+  preferences      Json?
+  dealbreakers     String[]
+  commonAnswers    Json?
+  truthConstraints String[]
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  experiences      Experience[]
+  skills           Skill[]
+  resumeDrafts     ResumeDraft[]
+}
+
+model Experience {
+  id            String   @id @default(cuid())
+  profileId     String
+  company       String
+  title         String
+  startDate     DateTime?
+  endDate       DateTime?
+  bullets       String[]
+  technologies  String[]
+  approvedFacts String[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  profile       Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+}
+
+model Skill {
+  id          String   @id @default(cuid())
+  profileId   String
+  name        String
+  category    String?
+  proficiency String?
+  years       Float?
+  approved    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  profile     Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+}
+
+model Job {
+  id                 String             @id @default(cuid())
+  source             SourceKind
+  sourceUrl          String             @unique
+  title              String
+  company            String?
+  location           String?
+  remoteType         String?
+  salaryText         String?
+  description        String?
+  applyUrl           String?
+  status             JobStatus          @default(new)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  scores             JobScore[]
+  resumeDrafts       ResumeDraft[]
+  applicationDrafts  ApplicationDraft[]
+}
+
+model JobScore {
+  id                String   @id @default(cuid())
+  jobId             String
+  overallScore      Int
+  skillScore        Int
+  seniorityScore    Int
+  compensationScore Int
+  locationScore     Int
+  explanation       String
+  risks             String[]
+  createdAt         DateTime @default(now())
+  job               Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+}
+
+model ResumeDraft {
+  id               String             @id @default(cuid())
+  jobId            String
+  profileId        String
+  contentMarkdown  String
+  tailoringNotes   String[]
+  truthCheckStatus TruthCheckStatus   @default(pending)
+  exportPath       String?
+  createdAt        DateTime           @default(now())
+  job              Job                @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  profile          Profile            @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  applications     ApplicationDraft[]
+}
+
+model ApplicationDraft {
+  id               String       @id @default(cuid())
+  jobId            String
+  resumeDraftId    String?
+  answersJson      Json?
+  status           DraftStatus  @default(draft)
+  approvalRequired Boolean      @default(true)
+  submittedAt      DateTime?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  job              Job          @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  resumeDraft      ResumeDraft? @relation(fields: [resumeDraftId], references: [id], onDelete: SetNull)
+}
+
+model SourceImport {
+  id           String      @id @default(cuid())
+  source       SourceKind
+  rawContent   String
+  parsedStatus ParseStatus @default(pending)
+  errorMessage String?
+  createdAt    DateTime    @default(now())
+}
