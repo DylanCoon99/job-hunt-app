@@ -2,6 +2,31 @@
 
 import { useEffect, useMemo, useState } from "react";
 
+type ProfileData = {
+  name: string;
+  email: string | null;
+  phone: string | null;
+  location: string | null;
+  links: Record<string, string> | null;
+  targetRoles: string[];
+  salaryMin: number | null;
+  salaryMax: number | null;
+  remotePreference: string | null;
+  preferences: Record<string, string> | null;
+  dealbreakers: string[];
+  commonAnswers: Record<string, string> | null;
+  truthConstraints: string[];
+  skills: Array<{ name: string }>;
+  experiences: Array<{
+    company: string;
+    title: string;
+    startDate: string | null;
+    endDate: string | null;
+    bullets: string[];
+    approvedFacts: string[];
+  }>;
+};
+
 type DashboardData = {
   counts: {
     jobsImported: number;
@@ -22,12 +47,8 @@ type DashboardData = {
     status: string;
     job: { title: string; company: string | null };
   }>;
-  profile: {
-    name: string;
-    targetRoles: string[];
-    remotePreference: string | null;
-    skills: Array<{ name: string }>;
-  } | null;
+  profile: ProfileData | null;
+  setupWarning?: string;
 };
 
 const emptyDashboard: DashboardData = {
@@ -142,6 +163,12 @@ export function DashboardClient() {
         <Stat label="Ready to review" value={String(dashboard.counts.readyToReview)} />
         <Stat label="Submitted" value={String(dashboard.counts.submitted)} />
       </div>
+
+      {dashboard.setupWarning ? (
+        <div className="rounded-lg border border-clay/20 bg-clay/10 px-4 py-3 text-sm text-clay">
+          {dashboard.setupWarning}
+        </div>
+      ) : null}
 
       <div className="grid gap-6 xl:grid-cols-[1fr_360px]">
         <section className="rounded-lg border border-ink/10 bg-white p-5 shadow-sm">
@@ -284,8 +311,32 @@ function ProfilePanel({
       <h2 className="text-xl font-semibold">Profile</h2>
       <form action={onSave} className="mt-4 grid gap-3">
         <input name="name" className="rounded-md border border-ink/15 px-3 py-2 text-sm" placeholder="Name" defaultValue={profile?.name ?? ""} />
-        <input name="email" className="rounded-md border border-ink/15 px-3 py-2 text-sm" placeholder="Email" />
-        <input name="location" className="rounded-md border border-ink/15 px-3 py-2 text-sm" placeholder="Location" />
+        <div className="grid gap-3 sm:grid-cols-2">
+          <input
+            name="email"
+            className="rounded-md border border-ink/15 px-3 py-2 text-sm"
+            placeholder="Email"
+            defaultValue={profile?.email ?? ""}
+          />
+          <input
+            name="phone"
+            className="rounded-md border border-ink/15 px-3 py-2 text-sm"
+            placeholder="Phone"
+            defaultValue={profile?.phone ?? ""}
+          />
+        </div>
+        <input
+          name="location"
+          className="rounded-md border border-ink/15 px-3 py-2 text-sm"
+          placeholder="Location"
+          defaultValue={profile?.location ?? ""}
+        />
+        <textarea
+          name="links"
+          className="min-h-20 rounded-md border border-ink/15 px-3 py-2 text-sm"
+          placeholder="Links, one per line: portfolio: https://..."
+          defaultValue={formatKeyValue(profile?.links)}
+        />
         <input
           name="targetRoles"
           className="rounded-md border border-ink/15 px-3 py-2 text-sm"
@@ -298,16 +349,55 @@ function ProfilePanel({
           placeholder="Remote preference"
           defaultValue={profile?.remotePreference ?? ""}
         />
+        <div className="grid gap-3 sm:grid-cols-2">
+          <input
+            name="salaryMin"
+            className="rounded-md border border-ink/15 px-3 py-2 text-sm"
+            placeholder="Salary min"
+            defaultValue={profile?.salaryMin ?? ""}
+          />
+          <input
+            name="salaryMax"
+            className="rounded-md border border-ink/15 px-3 py-2 text-sm"
+            placeholder="Salary max"
+            defaultValue={profile?.salaryMax ?? ""}
+          />
+        </div>
+        <textarea
+          name="preferences"
+          className="min-h-20 rounded-md border border-ink/15 px-3 py-2 text-sm"
+          placeholder="Preferences, one per line: industry: developer tools"
+          defaultValue={formatKeyValue(profile?.preferences)}
+        />
+        <textarea
+          name="dealbreakers"
+          className="min-h-20 rounded-md border border-ink/15 px-3 py-2 text-sm"
+          placeholder="Dealbreakers, comma or line separated"
+          defaultValue={profile?.dealbreakers.join("\n") ?? ""}
+        />
         <textarea
           name="skills"
           className="min-h-20 rounded-md border border-ink/15 px-3 py-2 text-sm"
-          placeholder="Approved skills, comma or line separated"
+          placeholder="Approved skills. Optional format: React | frontend | advanced | 5"
           defaultValue={profile?.skills.map((skill) => skill.name).join(", ") ?? ""}
+        />
+        <textarea
+          name="experiences"
+          className="min-h-40 rounded-md border border-ink/15 px-3 py-2 text-sm"
+          placeholder={"Experience blocks:\nTitle | Company | 2021-01 - present\nBuilt a thing\nFacts: approved measurable fact"}
+          defaultValue={formatExperiences(profile?.experiences)}
+        />
+        <textarea
+          name="commonAnswers"
+          className="min-h-20 rounded-md border border-ink/15 px-3 py-2 text-sm"
+          placeholder="Common answers, one per line: sponsorship: No"
+          defaultValue={formatKeyValue(profile?.commonAnswers)}
         />
         <textarea
           name="truthConstraints"
           className="min-h-20 rounded-md border border-ink/15 px-3 py-2 text-sm"
           placeholder="Truth constraints"
+          defaultValue={profile?.truthConstraints.join("\n") ?? ""}
         />
         <button className="rounded-md bg-moss px-4 py-2 text-sm font-semibold text-white disabled:opacity-50" disabled={loading}>
           Save Profile
@@ -316,6 +406,34 @@ function ProfilePanel({
       </form>
     </section>
   );
+}
+
+function formatKeyValue(value?: Record<string, string> | null) {
+  if (!value) return "";
+
+  return Object.entries(value)
+    .map(([key, entryValue]) => `${key}: ${entryValue}`)
+    .join("\n");
+}
+
+function formatExperiences(experiences?: ProfileData["experiences"]) {
+  if (!experiences || !Array.isArray(experiences)) return "";
+
+  return experiences
+    .map((experience) => {
+      const dates = [formatDate(experience.startDate), formatDate(experience.endDate) || "present"]
+        .filter(Boolean)
+        .join(" - ");
+      const header = [experience.title, experience.company, dates].filter(Boolean).join(" | ");
+      const facts = experience.approvedFacts.length > 0 ? `Facts: ${experience.approvedFacts.join(", ")}` : "";
+
+      return [header, ...experience.bullets, facts].filter(Boolean).join("\n");
+    })
+    .join("\n\n");
+}
+
+function formatDate(value: string | null) {
+  return value?.slice(0, 10) ?? "";
 }
 
 function Stat({ label, value }: { label: string; value: string }) {
