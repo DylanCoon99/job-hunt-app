@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
 type ProfileData = {
@@ -45,7 +46,7 @@ type DashboardData = {
   applications: Array<{
     id: string;
     status: string;
-    job: { title: string; company: string | null };
+    job: { id: string; title: string; company: string | null };
   }>;
   profile: ProfileData | null;
   setupWarning?: string;
@@ -220,7 +221,9 @@ export function DashboardClient() {
                 <article key={job.id} className="rounded-md border border-ink/10 p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <h3 className="font-semibold">{job.title}</h3>
+                      <Link className="font-semibold hover:text-steel" href={`/jobs/${job.id}`}>
+                        {job.title}
+                      </Link>
                       <p className="mt-1 text-sm text-ink/60">
                         {[job.company, job.source, job.status].filter(Boolean).join(" · ")}
                       </p>
@@ -266,7 +269,9 @@ export function DashboardClient() {
               ) : (
                 dashboard.applications.map((application) => (
                   <div key={application.id} className="rounded-md border border-ink/10 p-3">
-                    <div className="text-sm font-semibold">{application.job.title}</div>
+                    <Link className="text-sm font-semibold hover:text-steel" href={`/jobs/${application.job.id}`}>
+                      {application.job.title}
+                    </Link>
                     <div className="mt-1 text-xs text-ink/60">{application.status}</div>
                     <div className="mt-3 flex flex-wrap gap-2">
                       <button
